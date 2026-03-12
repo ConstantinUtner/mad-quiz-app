@@ -1,5 +1,6 @@
 package com.example.quiz_app_starter.presentation
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.example.quiz_app_starter.model.Question
 import com.example.quiz_app_starter.model.getDummyQuestions
 import com.example.quiz_app_starter.ui.theme.QuizappstarterTheme
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +48,17 @@ fun QuestionScreen(
     currentQuestionIndex: Int = 0
 ) {
     val currentQuestion = questions.getOrNull(currentQuestionIndex)
+    val totalTime = 30
+    var timeLeft by remember { mutableStateOf(totalTime) }
+    val progress = timeLeft.toFloat() / totalTime.toFloat()
+
+    LaunchedEffect(key1 = timeLeft) {
+        if (timeLeft > 0) {
+            delay(1000L)
+            timeLeft--
+        }
+    }
+
 
     Scaffold(
         topBar = {
@@ -52,7 +66,7 @@ fun QuestionScreen(
                 title = { Text("Quiz App") },
                 actions = {
                     Text(
-                        text = "00:30",
+                        text = "00:${if (timeLeft > 9) timeLeft else "0$timeLeft"}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(end = 16.dp)
@@ -87,7 +101,7 @@ fun QuestionScreen(
         ) {
 
             LinearProgressIndicator(
-                progress = { 0.5f },
+                progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
@@ -108,7 +122,7 @@ fun QuestionScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(34.dp))
                 var selectedOption by remember { mutableStateOf<String?>(null)}
                 LazyColumn(
                     modifier = Modifier
@@ -131,7 +145,10 @@ fun QuestionScreen(
 
                                 RadioButton(
                                     selected = answer == selectedOption,
-                                    onClick = { selectedOption = answer },
+                                    onClick = {
+                                        selectedOption = answer
+                                        Log.d("QuizApp", "Gewählte Antwort: $selectedOption")
+                                              },
                                 )
                             }
                         }
