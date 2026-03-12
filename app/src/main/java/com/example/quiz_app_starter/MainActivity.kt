@@ -1,6 +1,7 @@
 package com.example.quiz_app_starter
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -24,13 +25,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.quiz_app_starter.ui.theme.QuizappstarterTheme
+import com.example.quiz_app_starter.ui.theme.rainbowColors
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,7 +47,7 @@ class MainActivity : ComponentActivity() {
             QuizappstarterTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     MainMenuScreen(
-                        bestScore = 3,
+                        bestScore = 12,
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -62,7 +69,7 @@ fun MainMenuScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+            painter = painterResource(id = R.drawable.quiz_logo),
             contentDescription = "App Logo",
             modifier = Modifier.size(120.dp)
         )
@@ -70,7 +77,7 @@ fun MainMenuScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "QuizApp",
+            text = "My Awesome Quiz App",
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
@@ -79,11 +86,32 @@ fun MainMenuScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         Text(
+            text = buildAnnotatedString {
+                append("Test your\n")
+
+                withStyle(
+                    style = SpanStyle(
+                        brush = Brush.linearGradient(colors = rainbowColors),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp
+                    )
+                ) {
+                    append("knowledge!".uppercase())
+                }
+            },
+            textAlign = TextAlign.Center, // Zentriert beide Zeilen untereinander
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        /*
+        Text(
             text = "Test your knowledge!",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
+        */
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -111,7 +139,9 @@ fun MainMenuScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = {},
+            onClick = {
+                Log.d("MainMenu", "Play Button clicked!")
+            },
             modifier = Modifier.fillMaxWidth(0.6f),
             shape = MaterialTheme.shapes.medium
         ) {
@@ -124,6 +154,6 @@ fun MainMenuScreen(
 @Composable
 fun MainMenuScreenPreview() {
     QuizappstarterTheme {
-        MainMenuScreen(3, Modifier)
+        MainMenuScreen(12, Modifier)
     }
 }
