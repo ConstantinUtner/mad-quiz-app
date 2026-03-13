@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,10 +25,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,20 +48,100 @@ import kotlinx.coroutines.delay
 @Composable
 fun QuestionScreen(
     questions: List<Question> = getDummyQuestions(),
-    currentQuestionIndex: Int = 0
+    initialIndex: Int = 0,
+    onQuizFinished: (Int) -> Unit = {},
+    onMainMenuClick: () -> Unit = {}
 ) {
+    var currentQuestionIndex by remember { mutableIntStateOf(initialIndex) }
     val currentQuestion = questions.getOrNull(currentQuestionIndex)
+    var totalCorrectAnswers by remember { mutableIntStateOf(0) }
+
+
     val totalTime = 30
     var timeLeft by remember { mutableStateOf(totalTime) }
-    val progress = timeLeft.toFloat() / totalTime.toFloat()
+    var isAnswered by remember { mutableStateOf(false) }
+    val lastQuestion = questions.size - 1
 
-    LaunchedEffect(key1 = timeLeft) {
-        if (timeLeft > 0) {
+    val progress = timeLeft.toFloat() / totalTime.toFloat()
+    var timeup by remember { mutableStateOf(false) }
+
+    val correctAnswer = currentQuestion?.correctAnswer
+    var selectedOption by remember { mutableStateOf<String?>(null) }
+    var isCorrect by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
+
+
+    LaunchedEffect(key1 = timeLeft, key2 = isAnswered) {
+        if (timeLeft > 0 && !isAnswered) {
             delay(1000L)
             timeLeft--
+        } else if (timeLeft == 0 && !isAnswered) {
+            timeup = true
         }
     }
 
+    val goToNextQuestion = {
+        timeup = false
+        if (currentQuestionIndex < questions.size - 1) {
+            currentQuestionIndex++
+            timeLeft = totalTime
+            isAnswered = false
+            selectedOption = null
+            showDialog = false
+            Log.d("QuizApp", "Correct Answer Count: $totalCorrectAnswers")
+        } else {
+            showDialog = false
+            onQuizFinished(totalCorrectAnswers)
+        }
+    }
+
+    if (timeup) {
+        AlertDialog(
+            title = { Text("No answer selected. Time is out.") },
+            text = { Text("The correct answer was: $correctAnswer") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDialog = false
+                    goToNextQuestion()
+                }) {
+                    if (currentQuestionIndex != lastQuestion) {
+                        Text("Next")
+                    } else {
+                        Text("Finish Quiz")
+                    }
+                }
+            },
+            onDismissRequest = {})
+    }
+
+    if (showDialog) {
+        val buttonText = if (currentQuestionIndex == lastQuestion) "Finish Quiz" else "Next"
+
+        when (isCorrect) {
+            true -> {
+                AlertDialog(
+                    title = { Text("Correct!") },
+                    text = {},
+                    confirmButton = {
+                        TextButton(onClick = {
+                            totalCorrectAnswers++
+                            goToNextQuestion()
+                        }) { Text(buttonText) }
+                    },
+                    onDismissRequest = {})
+            }
+
+            false -> {
+                AlertDialog(
+                    title = { Text("Wrong!") },
+                    text = { Text("The correct answer was: $correctAnswer") },
+                    confirmButton = {
+                        TextButton(onClick = { goToNextQuestion() }) { Text(buttonText) }
+                    },
+                    onDismissRequest = {})
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -72,7 +155,7 @@ fun QuestionScreen(
                         modifier = Modifier.padding(end = 16.dp)
                     )
 
-                    IconButton(onClick = { /* Noch keine Funktion */ }) {
+                    IconButton(onClick = { onMainMenuClick() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = "Logout"
@@ -82,15 +165,22 @@ fun QuestionScreen(
             )
         },
         bottomBar = {
-                Button(
-                    onClick = { /* Noch keine Funktion */ },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(16.dp)
-                ) {
-                    Text("Submit")
-                }
+            Button(
+                onClick = {
+                    if (selectedOption != null) {
+                        isAnswered = true
+                        isCorrect = (selectedOption == correctAnswer)
+                        showDialog = true
+                    }
+                },
+                enabled = selectedOption != null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(16.dp)
+            ) {
+                Text("Submit")
+            }
         }
 
     ) { innerPadding ->
@@ -123,7 +213,7 @@ fun QuestionScreen(
                 }
 
                 Spacer(modifier = Modifier.height(34.dp))
-                var selectedOption by remember { mutableStateOf<String?>(null)}
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -148,7 +238,7 @@ fun QuestionScreen(
                                     onClick = {
                                         selectedOption = answer
                                         Log.d("QuizApp", "Gewählte Antwort: $selectedOption")
-                                              },
+                                    },
                                 )
                             }
                         }
