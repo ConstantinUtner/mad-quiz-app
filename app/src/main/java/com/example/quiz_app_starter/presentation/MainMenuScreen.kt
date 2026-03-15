@@ -34,16 +34,28 @@ import com.example.quiz_app_starter.R
 import com.example.quiz_app_starter.ui.theme.QuizappstarterTheme
 import com.example.quiz_app_starter.ui.theme.rainbowColors
 
+/**
+ * Displays the main menu screen of the quiz app.
+ *
+ * Shows the app logo, title, a styled message, the best score achieved so far,
+ * and a button to start the quiz.
+ *
+ * @param modifier Modifier to be applied to the layout.
+ * @param bestScore The highest score achieved, displayed prominently.
+ * @param onPlayClick Lambda invoked when the "Play!" button is pressed.
+ */
 @Composable
 fun MainMenuScreen(
     modifier: Modifier = Modifier,
-    bestScore: Int = 0,
+    bestScore: Int,
     onPlayClick: () -> Unit = {},
 ) {
+    //Scaffolding to provide a basic layout structure
     Scaffold(
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
 
+        //The first vertical container for the logo
         Column(
             modifier = Modifier
                 .padding(innerPadding)
@@ -52,25 +64,30 @@ fun MainMenuScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            //Actually displaying the app logo image inside the Column
             Image(
                 painter = painterResource(id = R.drawable.quiz_logo),
                 contentDescription = "App Logo",
                 modifier = Modifier.size(120.dp)
             )
 
+            //Spacer between the Logo and the Title
             Spacer(modifier = Modifier.height(16.dp))
 
+            //Vertically aligned title inside the Column
             Text(
                 text = "My Awesome Quiz App",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-
+            //Spacer between the title and the stylized text
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
+                //A styled text with a rainbow color gradient
                 text = buildAnnotatedString {
+                    //appending "normal" text before the stylized one
                     append("Test your\n")
 
                     withStyle(
@@ -88,8 +105,10 @@ fun MainMenuScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            //Spacer between stylized text and TextBox with score
             Spacer(modifier = Modifier.height(32.dp))
 
+            //Containerbox with column inside for displaying text
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
@@ -108,8 +127,10 @@ fun MainMenuScreen(
                 }
             }
 
+            //Spacer between best score-box and Button
             Spacer(modifier = Modifier.height(24.dp))
 
+            //Play-Button
             Button(
                 onClick = onPlayClick,
                 modifier = Modifier.fillMaxWidth(0.6f),

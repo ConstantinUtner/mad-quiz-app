@@ -17,16 +17,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.quiz_app_starter.ui.theme.QuizappstarterTheme
 
+/**
+ * Composable function that displays the finish screen of the quiz app.
+ *
+ * Shows a "Game Over" message, the final score, and buttons to restart or exit.
+ *
+ * @param score The final score achieved by the user.
+ * @param onRestart Lambda invoked when the restart button is clicked.
+ * @param onExit Lambda invoked when the home button is clicked.
+ */
 @Composable
 fun FinishScreen(
     score: Int = 0,
     onRestart: () -> Unit = {},
     onExit: () -> Unit ={}
 ) {
+    //Root surface
+    /*
+        Difference Scaffold and Surface:
+        Both are used for UI structuring, but Surface provides a material surface,
+        e.g. like a card-like element (smaller, more focused), wrapping a part of the UI with a background
+        while Scaffold provides a Framework layout, implementing basic material and
+        managing common UI components (like Home Screen, App with Bars, persistent UI components...
+     */
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
+        //Columnized area for the content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -34,6 +52,7 @@ fun FinishScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            //Game Over Text element
             Text(
                 text = "Game Over!",
                 style = MaterialTheme.typography.displaySmall,
@@ -42,7 +61,7 @@ fun FinishScreen(
             )
 
             Spacer(modifier = Modifier.height(32.dp))
-
+            //Box with Text "Score" and argumented score inside
             Box(
                 modifier = Modifier
                     .width(100.dp)
@@ -70,6 +89,7 @@ fun FinishScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
+            //Row of button-elements for navigating to QuestionScreen/MainMenuScreen
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -84,6 +104,7 @@ fun FinishScreen(
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 ) {
+                    //Icon for Refresh to navigate to QuestionScreen
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Restart",
@@ -101,6 +122,7 @@ fun FinishScreen(
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 ) {
+                    //Icon for Home to navigate to MainMenuScreen
                     Icon(
                         imageVector = Icons.Default.Home,
                         contentDescription = "Home",

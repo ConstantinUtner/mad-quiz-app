@@ -44,6 +44,17 @@ import com.example.quiz_app_starter.model.getDummyQuestions
 import com.example.quiz_app_starter.ui.theme.QuizappstarterTheme
 import kotlinx.coroutines.delay
 
+/**
+ * Composable function for the Quiz Question Screen.
+ *
+ * Displays the current question, answer options, a timer, progress bar,
+ * and manages the logic for answering questions and completing the quiz.
+ *
+ * @param questions List of questions for the quiz. Defaults to dummy questions.
+ * @param initialIndex Starting index for the question. Defaults to 0.
+ * @param onQuizFinished Callback invoked when the quiz is finished, passing the total correct answers.
+ * @param onMainMenuClick Callback invoked when the user clicks the main menu button.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionScreen(
@@ -52,25 +63,32 @@ fun QuestionScreen(
     onQuizFinished: (Int) -> Unit = {},
     onMainMenuClick: () -> Unit = {}
 ) {
+    //Tracks current question, index and total correct answers for the score
     var currentQuestionIndex by remember { mutableIntStateOf(initialIndex) }
     val currentQuestion = questions.getOrNull(currentQuestionIndex)
     var totalCorrectAnswers by remember { mutableIntStateOf(0) }
 
-
+    //Initializes/tracks total-time & timeLeft and answer-state
     val totalTime = 30
     var timeLeft by remember { mutableStateOf(totalTime) }
     var isAnswered by remember { mutableStateOf(false) }
     val lastQuestion = questions.size - 1
 
+    //Calculation & tracking of progress and if time is up
     val progress = timeLeft.toFloat() / totalTime.toFloat()
     var timeup by remember { mutableStateOf(false) }
 
+    //Setting correctAnswer for current question,
+    //tracking the option-state and dialog-state
     val correctAnswer = currentQuestion?.correctAnswer
     var selectedOption by remember { mutableStateOf<String?>(null) }
     var isCorrect by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
 
-
+    /**
+     * Effect that runs every second to decrement the timer.
+     * When time runs out, sets timeup to true.
+     */
     LaunchedEffect(key1 = timeLeft, key2 = isAnswered) {
         if (timeLeft > 0 && !isAnswered) {
             delay(1000L)
@@ -80,6 +98,10 @@ fun QuestionScreen(
         }
     }
 
+    /**
+     * Function to move to the next question.
+     * If the last question has been reached, it ends the quiz.
+     */
     val goToNextQuestion = {
         timeup = false
         if (currentQuestionIndex < questions.size - 1) {
@@ -90,11 +112,16 @@ fun QuestionScreen(
             showDialog = false
             Log.d("QuizApp", "Correct Answer Count: $totalCorrectAnswers")
         } else {
+            //If end of quiz - invole callback with score argument
             showDialog = false
             onQuizFinished(totalCorrectAnswers)
         }
     }
 
+    /**
+     * Dialog displayed when time runs out without an answer.
+     * Shows the correct answer.
+     */
     if (timeup) {
         AlertDialog(
             title = { Text("No answer selected. Time is out.") },
@@ -114,6 +141,10 @@ fun QuestionScreen(
             onDismissRequest = {})
     }
 
+    /**
+     * Dialog shown after an answer is selected.
+     * Indicates whether the answer was correct or wrong.
+     */
     if (showDialog) {
         val buttonText = if (currentQuestionIndex == lastQuestion) "Finish Quiz" else "Next"
 
@@ -143,7 +174,9 @@ fun QuestionScreen(
         }
     }
 
+    //Main Layout scaffold containing the app bar, content and bottom bar
     Scaffold(
+        //Displaying remaining time in top bar
         topBar = {
             TopAppBar(
                 title = { Text("Quiz App") },
@@ -164,6 +197,7 @@ fun QuestionScreen(
                 }
             )
         },
+        //displaying the button for proceeding to the next question
         bottomBar = {
             Button(
                 onClick = {
@@ -184,12 +218,14 @@ fun QuestionScreen(
         }
 
     ) { innerPadding ->
+        //Content area for question, answers and the progress bar
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
 
+            //progress bar indicating remaining time
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
@@ -199,6 +235,7 @@ fun QuestionScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            //Display question/answers if available
             if (currentQuestion != null) {
                 Card(
                     modifier = Modifier
@@ -214,12 +251,14 @@ fun QuestionScreen(
 
                 Spacer(modifier = Modifier.height(34.dp))
 
+                //LazyColumn list for answer options
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    //Each answer is rendered as a card module, with a row of answer-text and radio-button
                     items(currentQuestion.answers) { answer ->
                         Card(
                             modifier = Modifier.fillMaxWidth()
@@ -233,6 +272,8 @@ fun QuestionScreen(
                             ) {
                                 Text(text = answer)
 
+                                //Radio button selects the current answer (for stated selected option)
+                                //and deselects if another one is selected
                                 RadioButton(
                                     selected = answer == selectedOption,
                                     onClick = {
