@@ -63,6 +63,9 @@ fun QuestionScreen(
     onQuizFinished: (Int) -> Unit = {},
     onMainMenuClick: () -> Unit = {}
 ) {
+    // TODO: Refactor QuestionScreen to consume state from QuestionScreenViewModel.
+    // TODO: Use DisposableEffect to attach a LifecycleOwner to the ViewModel (DefaultLifecycleObserver).
+
     //Tracks current question, index and total correct answers for the score
     var currentQuestionIndex by remember { mutableIntStateOf(initialIndex) }
     val currentQuestion = questions.getOrNull(currentQuestionIndex)

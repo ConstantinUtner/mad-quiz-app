@@ -42,6 +42,8 @@ fun Navigation() {
 
         //Second screen: QuizScreen Composable
         composable(route = Screen.QuestionScreen.route) {
+            // TODO: Update QuestionScreen call to use the new QuestionScreenViewModel.
+            // TODO: Ensure the questions are passed to the ViewModel correctly.
             QuestionScreen(
                 onQuizFinished = { score ->
                     scoreViewModel.updateScore(score)
