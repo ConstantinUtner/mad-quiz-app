@@ -92,6 +92,9 @@ Temporary Items
 !.idea/runConfigurations/
 !.idea/scopes/
 !.idea/vcs.xml
+.idea/gradle.xml
+.idea/misc.xml
+local.properties
 
 ### Kotlin template
 # Compiled class file
