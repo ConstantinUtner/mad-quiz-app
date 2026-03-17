@@ -260,29 +260,16 @@ fun QuestionScreen(
                 ) {
                     //Each answer is rendered as a card module, with a row of answer-text and radio-button
                     items(currentQuestion.answers) { answer ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(text = answer)
-
-                                //Radio button selects the current answer (for stated selected option)
-                                //and deselects if another one is selected
-                                RadioButton(
-                                    selected = answer == selectedOption,
-                                    onClick = {
-                                        selectedOption = answer
-                                        Log.d("QuizApp", "Gewählte Antwort: $selectedOption")
-                                    },
-                                )
+                        AnswerCard(
+                            answer = answer,
+                            //Abfrage ob selectedOption die Answer ist --> Ergebnis: true oder false
+                            isSelected = (selectedOption == answer),
+                            //Hier passiert eine Zuweisung der selectedOption
+                            onSelect = {
+                                selectedOption = answer
+                                Log.d("QuizApp", "Current Selection: $selectedOption")
                             }
-                        }
+                        )
                     }
                 }
             }
