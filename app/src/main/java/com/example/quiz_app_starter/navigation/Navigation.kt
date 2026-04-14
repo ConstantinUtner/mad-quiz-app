@@ -9,9 +9,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.quiz_app_starter.model.ScoreViewModel
+import com.example.quiz_app_starter.model.getDummyQuestions
 import com.example.quiz_app_starter.presentation.FinishScreen
 import com.example.quiz_app_starter.presentation.MainMenuScreen
 import com.example.quiz_app_starter.presentation.QuestionScreen
+import com.example.quiz_app_starter.presentation.QuestionScreenViewModel
+import com.example.quiz_app_starter.utilities.QuestionScreenViewModelFactory
 
 /**
  * Sets up the navigation graph for the quiz app.
@@ -43,13 +46,21 @@ fun Navigation() {
         //Second screen: QuizScreen Composable
         composable(route = Screen.QuestionScreen.route) {
             // TODO: Update QuestionScreen call to use the new QuestionScreenViewModel.
+            val questions = getDummyQuestions()
+            // Create the factory with the questions list
+            val factory = QuestionScreenViewModelFactory(questions)
+
+            // Pass the factory to viewModel() to create the ViewModel with the questions
+            val questionViewModel: QuestionScreenViewModel = viewModel(factory = factory)
+
             // TODO: Ensure the questions are passed to the ViewModel correctly.
             QuestionScreen(
+                viewModel = questionViewModel,
                 onQuizFinished = { score ->
                     scoreViewModel.updateScore(score)
                     //Navigate to finishScreen with score argument when clicking the button
                     navController.navigate(Screen.FinishScreen.createRoute(score)) {
-                        popUpTo("question_screen") { inclusive = true }
+                        popUpTo(Screen.QuestionScreen.route) { inclusive = true }
                     }
                 },
                 onMainMenuClick = {
