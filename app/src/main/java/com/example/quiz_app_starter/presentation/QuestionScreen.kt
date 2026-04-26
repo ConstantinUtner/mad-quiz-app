@@ -1,213 +1,113 @@
 package com.example.quiz_app_starter.presentation
 
-import android.util.Log
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.quiz_app_starter.model.Question
 import com.example.quiz_app_starter.model.getDummyQuestions
-import com.example.quiz_app_starter.ui.theme.QuizappstarterTheme
-import kotlinx.coroutines.delay
 
-/**
- * Composable function for the Quiz Question Screen.
- *
- * Displays the current question, answer options, a timer, progress bar,
- * and manages the logic for answering questions and completing the quiz.
- *
- * @param questions List of questions for the quiz. Defaults to dummy questions.
- * @param initialIndex Starting index for the question. Defaults to 0.
- * @param onQuizFinished Callback invoked when the quiz is finished, passing the total correct answers.
- * @param onMainMenuClick Callback invoked when the user clicks the main menu button.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionScreen(
     questions: List<Question> = getDummyQuestions(),
-    initialIndex: Int = 0,
     onQuizFinished: (Int) -> Unit = {},
     onMainMenuClick: () -> Unit = {}
 ) {
-    //Tracks current question, index and total correct answers for the score
-    var currentQuestionIndex by remember { mutableIntStateOf(initialIndex) }
-    val currentQuestion = questions.getOrNull(currentQuestionIndex)
-    var totalCorrectAnswers by remember { mutableIntStateOf(0) }
+    // 1. ViewModel instanziieren mit einer Factory (da wir Parameter übergeben)
+    val viewModel: QuestionScreenViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return QuestionScreenViewModel(questions) as T
+            }
+        }
+    )
 
-    //Initializes/tracks total-time & timeLeft and answer-state
-    val totalTime = 30
-    var timeLeft by remember { mutableStateOf(totalTime) }
-    var isAnswered by remember { mutableStateOf(false) }
-    val lastQuestion = questions.size - 1
+    // 2. State aus dem ViewModel abonnieren (reagiert automatisch auf Änderungen)
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    //Calculation & tracking of progress and if time is up
-    val progress = timeLeft.toFloat() / totalTime.toFloat()
-    var timeup by remember { mutableStateOf(false) }
-
-    //Setting correctAnswer for current question,
-    //tracking the option-state and dialog-state
-    val correctAnswer = currentQuestion?.correctAnswer
-    var selectedOption by remember { mutableStateOf<String?>(null) }
-    var isCorrect by remember { mutableStateOf(false) }
-    var showDialog by remember { mutableStateOf(false) }
-
-    /**
-     * Effect that runs every second to decrement the timer.
-     * When time runs out, sets timeup to true.
-     */
-    LaunchedEffect(key1 = timeLeft, key2 = isAnswered) {
-        if (timeLeft > 0 && !isAnswered) {
-            delay(1000L)
-            timeLeft--
-        } else if (timeLeft == 0 && !isAnswered) {
-            timeup = true
+    // 3. Lifecycle Observer registrieren
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.addObserver(viewModel) // onStart und onPause binden
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(viewModel) // Aufräumen
         }
     }
 
-    /**
-     * Function to move to the next question.
-     * If the last question has been reached, it ends the quiz.
-     */
-    val goToNextQuestion = {
-        timeup = false
-        if (currentQuestionIndex < questions.size - 1) {
-            currentQuestionIndex++
-            timeLeft = totalTime
-            isAnswered = false
-            selectedOption = null
-            showDialog = false
-            Log.d("QuizApp", "Correct Answer Count: $totalCorrectAnswers")
-        } else {
-            //If end of quiz - invole callback with score argument
-            showDialog = false
-            onQuizFinished(totalCorrectAnswers)
-        }
-    }
+    val progress = state.timeLeft.toFloat() / 30f
 
-    /**
-     * Dialog displayed when time runs out without an answer.
-     * Shows the correct answer.
-     */
-    if (timeup) {
+    // --- Dialoge ---
+    if (state.timeup) {
         AlertDialog(
-            title = { Text("No answer selected. Time is out.") },
-            text = { Text("The correct answer was: $correctAnswer") },
+            title = { Text("Time is out.") },
+            text = { Text("The correct answer was: ${state.currentQuestion?.correctAnswer}") },
             confirmButton = {
                 TextButton(onClick = {
-                    showDialog = false
-                    goToNextQuestion()
+                    viewModel.onDialogDismissed()
+                    if (state.isLastQuestion) onQuizFinished(state.totalCorrectAnswers)
+                    else viewModel.onNextQuestion()
                 }) {
-                    if (currentQuestionIndex != lastQuestion) {
-                        Text("Next")
-                    } else {
-                        Text("Finish Quiz")
-                    }
+                    Text(if (state.isLastQuestion) "Finish Quiz" else "Next")
                 }
             },
-            onDismissRequest = {})
+            onDismissRequest = { viewModel.onDialogDismissed() }
+        )
     }
 
-    /**
-     * Dialog shown after an answer is selected.
-     * Indicates whether the answer was correct or wrong.
-     */
-    if (showDialog) {
-        val buttonText = if (currentQuestionIndex == lastQuestion) "Finish Quiz" else "Next"
+    if (state.showDialog) {
+        val title = if (state.isCorrect) "Correct!" else "Wrong!"
+        val text = if (!state.isCorrect) "The correct answer was: ${state.currentQuestion?.correctAnswer}" else ""
 
-        when (isCorrect) {
-            true -> {
-                AlertDialog(
-                    title = { Text("Correct!") },
-                    text = {},
-                    confirmButton = {
-                        TextButton(onClick = {
-                            totalCorrectAnswers++
-                            goToNextQuestion()
-                        }) { Text(buttonText) }
-                    },
-                    onDismissRequest = {})
-            }
-
-            false -> {
-                AlertDialog(
-                    title = { Text("Wrong!") },
-                    text = { Text("The correct answer was: $correctAnswer") },
-                    confirmButton = {
-                        TextButton(onClick = { goToNextQuestion() }) { Text(buttonText) }
-                    },
-                    onDismissRequest = {})
-            }
-        }
+        AlertDialog(
+            title = { Text(title) },
+            text = { if (text.isNotEmpty()) Text(text) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.onDialogDismissed()
+                    if (state.isLastQuestion) onQuizFinished(state.totalCorrectAnswers + if(state.isCorrect) 1 else 0)
+                    else viewModel.onNextQuestion()
+                }) {
+                    Text(if (state.isLastQuestion) "Finish Quiz" else "Next")
+                }
+            },
+            onDismissRequest = { viewModel.onDialogDismissed() }
+        )
     }
 
-    //Main Layout scaffold containing the app bar, content and bottom bar
+    // --- UI Layout ---
     Scaffold(
-        //Displaying remaining time in top bar
         topBar = {
             TopAppBar(
                 title = { Text("Quiz App") },
                 actions = {
                     Text(
-                        text = "00:${if (timeLeft > 9) timeLeft else "0$timeLeft"}",
+                        text = "00:${if (state.timeLeft > 9) state.timeLeft else "0${state.timeLeft}"}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(end = 16.dp)
                     )
-
-                    IconButton(onClick = { onMainMenuClick() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Logout"
-                        )
+                    IconButton(onClick = onMainMenuClick) {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, "Exit")
                     }
                 }
             )
         },
-        //displaying the button for proceeding to the next question
         bottomBar = {
             Button(
-                onClick = {
-                    if (selectedOption != null) {
-                        isAnswered = true
-                        isCorrect = (selectedOption == correctAnswer)
-                        showDialog = true
-                    }
-                },
-                enabled = selectedOption != null,
+                onClick = { viewModel.onSubmit() },
+                enabled = state.selectedOption != null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
@@ -216,34 +116,18 @@ fun QuestionScreen(
                 Text("Submit")
             }
         }
-
     ) { innerPadding ->
-        //Content area for question, answers and the progress bar
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-        ) {
-
-            //progress bar indicating remaining time
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
             LinearProgressIndicator(
                 progress = { progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
             )
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            //Display question/answers if available
-            if (currentQuestion != null) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
+            state.currentQuestion?.let { currentQ ->
+                Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     Text(
-                        text = currentQuestion.question,
+                        text = currentQ.question,
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.bodyLarge
                     )
@@ -251,36 +135,19 @@ fun QuestionScreen(
 
                 Spacer(modifier = Modifier.height(34.dp))
 
-                //LazyColumn list for answer options
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    //Each answer is rendered as a card module, with a row of answer-text and radio-button
-                    items(currentQuestion.answers) { answer ->
+                    items(currentQ.answers) { answer ->
                         AnswerCard(
                             answer = answer,
-                            //Abfrage ob selectedOption die Answer ist --> Ergebnis: true oder false
-                            isSelected = (selectedOption == answer),
-                            //Hier passiert eine Zuweisung der selectedOption
-                            onSelect = {
-                                selectedOption = answer
-                                Log.d("QuizApp", "Current Selection: $selectedOption")
-                            }
+                            isSelected = (state.selectedOption == answer),
+                            onSelect = { viewModel.onOptionSelected(answer) }
                         )
                     }
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, name = "QuestionScreenPreview")
-@Composable
-fun QuestionScreenPreview() {
-    QuizappstarterTheme {
-        QuestionScreen()
     }
 }
