@@ -1,8 +1,8 @@
 package com.example.quiz_app_starter.model
 
 data class Question(
-    val category: String,
     val id: String,
+    val category: String,
     val correctAnswer: String,
     val answers: List<String>,
     val tags: List<String>,
@@ -13,6 +13,7 @@ data class Question(
     val isNiche: Boolean
 )
 
+/*
 fun getDummyQuestions(): List<Question> {
     return listOf(
         Question(
@@ -139,3 +140,4 @@ fun getDummyQuestions(): List<Question> {
         )
     )
 }
+*/

@@ -4,8 +4,9 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.quiz_app_starter.model.Question
+import com.example.quiz_app_starter.data.QuestionRepository
 import com.example.quiz_app_starter.model.QuestionScreenState
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,71 +14,63 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-// Das ViewModel erhält die Fragen über den Konstruktor
-class QuestionScreenViewModel(
-    private val initialQuestions: List<Question>
+@HiltViewModel
+class QuestionScreenViewModel @Inject constructor(
+    private val repository: QuestionRepository
 ) : ViewModel(), DefaultLifecycleObserver {
 
-    // Privater MutableStateFlow: Nur das ViewModel kann den State verändern
-    private val _uiState = MutableStateFlow(QuestionScreenState(questions = initialQuestions))
-
-    // Öffentlicher StateFlow: Die UI kann den State nur lesen (immutable)
+    private val _uiState = MutableStateFlow(QuestionScreenState())
     val uiState: StateFlow<QuestionScreenState> = _uiState.asStateFlow()
 
     private var timerJob: Job? = null
     private val totalTime = 30
 
     init {
-        startTimer()
+        loadQuestions()
+    }
+
+    private fun loadQuestions() {
+        viewModelScope.launch {
+            val questions = repository.getQuestions(limit = 10)
+            _uiState.update { it.copy(questions = questions) }
+            if (questions.isNotEmpty()) startTimer()
+        }
     }
 
     private fun startTimer() {
-        // Wir nutzen den viewModelScope. Dieser wird automatisch gecancelt,
-        // wenn das ViewModel zerstört wird.
         timerJob?.cancel()
         timerJob = viewModelScope.launch {
             while (_uiState.value.timeLeft > 0 && !_uiState.value.isAnswered) {
                 delay(1000L)
-                _uiState.update { currentState ->
-                    val newTime = currentState.timeLeft - 1
-                    currentState.copy(
-                        timeLeft = newTime,
-                        timeup = newTime == 0
-                    )
+                _uiState.update { current ->
+                    val newTime = current.timeLeft - 1
+                    current.copy(timeLeft = newTime, timeup = newTime == 0)
                 }
             }
         }
     }
 
-    // --- Lifecycle Events ---
-
     override fun onStart(owner: LifecycleOwner) {
         super.onStart(owner)
-        // Timer nur fortsetzen, wenn noch Zeit übrig ist und nicht geantwortet wurde
         if (_uiState.value.timeLeft > 0 && !_uiState.value.isAnswered) {
             startTimer()
         }
     }
 
-    // Wird aufgerufen, wenn die Activity in den Hintergrund rückt
     override fun onPause(owner: LifecycleOwner) {
         super.onPause(owner)
-        timerJob?.cancel() // Timer pausieren
+        timerJob?.cancel()
     }
-
-    // --- Events von der UI ---
 
     fun onOptionSelected(answer: String) {
         _uiState.update { it.copy(selectedOption = answer) }
     }
 
     fun onSubmit() {
-        val currentState = _uiState.value
-        val correctAns = currentState.currentQuestion?.correctAnswer
-
-        timerJob?.cancel() // Timer stoppen bei Abgabe
-
+        val correctAns = _uiState.value.currentQuestion?.correctAnswer
+        timerJob?.cancel()
         _uiState.update {
             it.copy(
                 isAnswered = true,
@@ -88,9 +81,7 @@ class QuestionScreenViewModel(
     }
 
     fun onNextQuestion() {
-        val currentState = _uiState.value
-        val isCorrect = currentState.isCorrect
-
+        val isCorrect = _uiState.value.isCorrect
         _uiState.update {
             it.copy(
                 currentQuestionIndex = it.currentQuestionIndex + 1,
@@ -99,10 +90,11 @@ class QuestionScreenViewModel(
                 selectedOption = null,
                 showDialog = false,
                 timeup = false,
-                totalCorrectAnswers = if (isCorrect) it.totalCorrectAnswers + 1 else it.totalCorrectAnswers
+                totalCorrectAnswers = if (isCorrect) it.totalCorrectAnswers + 1
+                else it.totalCorrectAnswers
             )
         }
-        startTimer() // Timer für die nächste Frage neu starten
+        startTimer()
     }
 
     fun onDialogDismissed() {

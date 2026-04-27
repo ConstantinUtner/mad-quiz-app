@@ -7,48 +7,31 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.quiz_app_starter.model.Question
-import com.example.quiz_app_starter.model.getDummyQuestions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionScreen(
-    questions: List<Question> = getDummyQuestions(),
     onQuizFinished: (Int) -> Unit = {},
-    onMainMenuClick: () -> Unit = {}
+    onMainMenuClick: () -> Unit = {},
+    viewModel: QuestionScreenViewModel = hiltViewModel()
 ) {
-    // 1. ViewModel instanziieren mit einer Factory (da wir Parameter übergeben)
-    val viewModel: QuestionScreenViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return QuestionScreenViewModel(questions) as T
-            }
-        }
-    )
-
-    // 2. State aus dem ViewModel abonnieren (reagiert automatisch auf Änderungen)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // 3. Lifecycle Observer registrieren
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.addObserver(viewModel) // onStart und onPause binden
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(viewModel) // Aufräumen
-        }
+        lifecycleOwner.lifecycle.addObserver(viewModel)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(viewModel) }
     }
 
     val progress = state.timeLeft.toFloat() / 30f
 
-    // --- Dialoge ---
     if (state.timeup) {
         AlertDialog(
             title = { Text("Time is out.") },
@@ -68,7 +51,8 @@ fun QuestionScreen(
 
     if (state.showDialog) {
         val title = if (state.isCorrect) "Correct!" else "Wrong!"
-        val text = if (!state.isCorrect) "The correct answer was: ${state.currentQuestion?.correctAnswer}" else ""
+        val text = if (!state.isCorrect)
+            "The correct answer was: ${state.currentQuestion?.correctAnswer}" else ""
 
         AlertDialog(
             title = { Text(title) },
@@ -76,7 +60,8 @@ fun QuestionScreen(
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.onDialogDismissed()
-                    if (state.isLastQuestion) onQuizFinished(state.totalCorrectAnswers + if(state.isCorrect) 1 else 0)
+                    if (state.isLastQuestion)
+                        onQuizFinished(state.totalCorrectAnswers + if (state.isCorrect) 1 else 0)
                     else viewModel.onNextQuestion()
                 }) {
                     Text(if (state.isLastQuestion) "Finish Quiz" else "Next")
@@ -86,7 +71,6 @@ fun QuestionScreen(
         )
     }
 
-    // --- UI Layout ---
     Scaffold(
         topBar = {
             TopAppBar(
@@ -108,16 +92,22 @@ fun QuestionScreen(
             Button(
                 onClick = { viewModel.onSubmit() },
                 enabled = state.selectedOption != null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(16.dp)
-            ) {
-                Text("Submit")
-            }
+                modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)
+            ) { Text("Submit") }
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Column(
+            modifier = Modifier.padding(innerPadding).fillMaxSize()
+        ) {
+            // Loading state, solange Fragen noch nicht geladen sind
+            if (state.questions.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
+                return@Column
+            }
+
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
@@ -132,7 +122,6 @@ fun QuestionScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
-
                 Spacer(modifier = Modifier.height(34.dp))
 
                 LazyColumn(
