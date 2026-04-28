@@ -1,0 +1,30 @@
+What to do / to achieve:
+information taken from the .pdf for Codelab05 and the presentation for DI and persistent storage
+
+- Data Layer
+    - Entity (QuestionEntity), Room @Entity that mirrors the Question model
+    - @TypeConverter methods implemented inside its own class. e.g. converting json into room db and back
+    - @Dao interface with getRandomQuestions, insertQuestions and insertQuestion(singular)
+    - Database class --> Room, adding QuestionDao and including the TypeConverters
+
+    - Repository
+        Localized Data (cached) or API data
+        fetching data from API, otherwise from Dao
+        -> stores data into database
+        -> returns data from database
+
+
+API Handling
+    - DTO (Data Transfer Object) to match the JSON and add object mapping
+    (e.g. toQuestion?, toDto?)
+    - @GET request with APIService
+
+DI (Dependency Injection) with Hilt
+    - the error happened, because it was already a dependency inside the project, beware of using it without knowledge!
+
+    - Module @Module with @Provides methods
+        provides singleton instances of dao, database and APIService
+    - RepositoryModule to link Repository to implementation (@Binds?)
+    - ScreenViewModel annotates with @HiltViewModel and injects the constructor with new Repo
+    - Navigation.kt instantiates data with new hiltViewModel()
+    - MainActivity get an AndroidEntryPoint

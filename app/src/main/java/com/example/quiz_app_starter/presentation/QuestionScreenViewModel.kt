@@ -4,7 +4,9 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.quiz_app_starter.dataLayer.QuestionRepository
 import com.example.quiz_app_starter.model.Question
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
 /**
  * TODO: Exercise - QuestionScreenViewModel
@@ -30,11 +33,13 @@ import kotlinx.coroutines.flow.update
  * 1. Override onStart to resume the timer.
  * 2. Override onPause to pause the timer.
  */
-class QuestionScreenViewModel(
-    private val questions: List<Question>
+@HiltViewModel
+class QuestionScreenViewModel @Inject constructor(
+    //private val questions: List<Question>
+    private val repository: QuestionRepository
 ) : ViewModel(), DefaultLifecycleObserver {
 
-    private val _uiState = MutableStateFlow(QuestionScreenState(questions = questions))
+    private val _uiState = MutableStateFlow(QuestionScreenState())
     val uiState: StateFlow<QuestionScreenState> = _uiState.asStateFlow()
 
     private var timerJob: Job? = null
@@ -49,6 +54,23 @@ class QuestionScreenViewModel(
         super.onPause(owner)
         // Pause the timer when the app goes to the background
         stopTimer()
+    }
+
+    init {
+        loadQuestions()
+    }
+
+    private fun loadQuestions() {
+        viewModelScope.launch {
+            repository.getQuestions().collect { questions ->
+                if (questions.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        questions = questions,
+                        currentQuestionIndex = 0
+                    )
+                }
+            }
+        }
     }
 
     /**
@@ -130,7 +152,7 @@ class QuestionScreenViewModel(
      */
     fun nextQuestion() {
         val currentState = uiState.value
-        if (currentState.currentQuestionIndex < questions.size - 1) {
+        if (currentState.currentQuestionIndex < uiState.value.questions.size - 1) {
             _uiState.update {
                 it.copy(
                     currentQuestionIndex = it.currentQuestionIndex + 1,

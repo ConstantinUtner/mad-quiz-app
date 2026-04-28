@@ -9,11 +9,11 @@ class QuestionScreenViewModelFactory(
     private val questions: List<Question>
 ) : ViewModelProvider.Factory {
 
-    @Suppress("UNCHECKED_CAST")
+    /*@Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(QuestionScreenViewModel::class.java)) {
             return QuestionScreenViewModel(questions) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
-    }
+    }*/
 }

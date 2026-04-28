@@ -2,6 +2,7 @@ package com.example.quiz_app_starter.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -46,12 +47,12 @@ fun Navigation() {
         //Second screen: QuizScreen Composable
         composable(route = Screen.QuestionScreen.route) {
             // TODO: Update QuestionScreen call to use the new QuestionScreenViewModel.
-            val questions = getDummyQuestions()
+            //val questions = getDummyQuestions()
             // Create the factory with the questions list
-            val factory = QuestionScreenViewModelFactory(questions)
+            //val factory = QuestionScreenViewModelFactory(questions)
 
             // Pass the factory to viewModel() to create the ViewModel with the questions
-            val questionViewModel: QuestionScreenViewModel = viewModel(factory = factory)
+            val questionViewModel: QuestionScreenViewModel = hiltViewModel()
 
             // TODO: Ensure the questions are passed to the ViewModel correctly.
             QuestionScreen(

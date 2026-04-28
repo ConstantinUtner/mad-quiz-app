@@ -3,7 +3,6 @@ package com.example.quiz_app_starter.presentation
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,20 +28,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.quiz_app_starter.model.Question
+import com.example.quiz_app_starter.api.TriviaAPI
+import com.example.quiz_app_starter.dataLayer.QuestionDatabase
+import com.example.quiz_app_starter.dataLayer.QuestionRepository
 import com.example.quiz_app_starter.model.getDummyQuestions
 import com.example.quiz_app_starter.ui.theme.QuizappstarterTheme
-import kotlinx.coroutines.delay
 
 /**
  * Composable function for the Quiz Question Screen.
@@ -59,10 +55,21 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuestionScreen(
-    viewModel: QuestionScreenViewModel,
+    viewModel: QuestionScreenViewModel = hiltViewModel(),
     onQuizFinished: (Int) -> Unit = {},
     onMainMenuClick: () -> Unit = {}
 ) {
+    //Get repository and data
+    /*val dao = QuestionDatabase.getDatabase(LocalContext.current).questionDao
+    val repo = QuestionRepository(dao)
+    val questionViewModel: QuestionScreenViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T: ViewModel> create(modelClass: Class<T>):T {
+                return QuestionScreenViewModel(repo) as T
+            }
+        }
+    )*/
+
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     // 2. Lifecycle Observer (Attach the timer)
@@ -234,9 +241,10 @@ fun QuestionScreenPreview() {
 
         // We manually instantiate the ViewModel for the preview
         // Note: This only works if your ViewModel constructor is simple
-        val viewModel = QuestionScreenViewModel(
-            questions = dummyQuestions
-        )
+        val viewModel = QuestionScreenViewModel(repository = QuestionRepository(
+            QuestionDatabase.getDatabase(LocalContext.current).questionDao,
+            TriviaAPI.api // Use the actual interface instance
+        ))
 
         QuestionScreen(viewModel = viewModel)
     }
